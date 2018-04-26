@@ -1,0 +1,39 @@
+#ship {
+    position: absolute;
+    width: 5vh;
+    height: 5vh;
+    transform: rotateZ(90deg);
+    top: 50%;
+    left: 0px;
+    transition: all 0.2s ease;
+
+}
+
+.bullet {
+    width: 2vh;
+    height: 1vh;
+    background-color: #000;
+    transition: all 0.2s ease;
+    z-index: 0;
+}
+
+#game {
+    position: absolute;
+    width: 800px;
+    height: 600px;
+    background-color: black;
+    overflow: hidden;
+    z-index: -100;
+}
+
+#sky {
+    position: absolute;
+    background-image: url("../img/sky.png");
+    background-repeat: repeat-x;
+    height: 50%;
+    width: 10000px;
+    left: -5000px;
+    z-index: -9;
+}
+
+
