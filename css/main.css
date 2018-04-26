@@ -2,19 +2,22 @@
     position: absolute;
     width: 5vh;
     height: 5vh;
-    transform: rotateZ(90deg);
     top: 50%;
-    left: 0px;
-    transition: all 0.2s ease;
+    left: 50%;
+    #transition: all 1s ease;
 
 }
 
 .bullet {
+    position: absolute;
     width: 2vh;
     height: 1vh;
-    background-color: #000;
-    transition: all 0.2s ease;
+    background-color: red;
+    #transition: all 0.2s ease;
     z-index: 0;
+    visibility: visible;
+    top: 50%;
+    left: 50%;
 }
 
 #game {

@@ -1,19 +1,23 @@
 const ship = document.getElementById("ship");
 const game = document.getElementById("game");
 let timer;
-let updateBeat = 30;
+let updateBeat = 10;
 let positionX = 0;
 let positionY = 0;
-let speed = 8;
-let topSpeed = 15;
+const speed = 6;
+const bulletSpeed = 10;
 let right;
 let left;
 let up;
 let down;
+let shoot;
+let bullets = [];
 
 function startGame(){
     console.log("start Game");
     timer = setInterval(draw,updateBeat);
+    console.log(game.offsetWidth);
+    console.log(game.offsetHeight);
 }
 
 document.onkeydown = function(e) {
@@ -21,7 +25,7 @@ document.onkeydown = function(e) {
     if(e.keyCode === 39 || e.keyCode === 68) right = true;
     if(e.keyCode === 38 || e.keyCode === 87) up = true;
     if(e.keyCode === 40 || e.keyCode === 83) down = true;
-    if(e.keyCode === 32 ) shoot();
+    if(e.keyCode === 32 ) shoot = true;
 };
 
 
@@ -30,60 +34,85 @@ document.onkeyup = function(e) {
     if(e.keyCode === 39 || e.keyCode === 68) right = false;
     if(e.keyCode === 38 || e.keyCode === 87) up = false;
     if(e.keyCode === 40 || e.keyCode === 83) down = false;
+    if(e.keyCode === 32 ) shoot = false;
 };
 
 function draw() {
-    if (left) {
-        if (positionY < 0) {
-            positionY += speed;
-        }
-
-    }
-    if (right) {
-        if ((positionY *-1) + ship.offsetWidth < game.offsetWidth) {
-            positionY -= speed;
-        }
-
+    bullets.forEach(moveBullets);
+    if (down) {
+        moveDown()
     }
     if (up) {
-        if (positionX > (-game.offsetHeight/2)) {
-            positionX -= speed;
-        }
+        moveUp()
     }
-    if (down) {
-        if (positionX + ship.offsetHeight < (game.offsetHeight/2)) {
-            positionX += speed;
-        }
+    if (left) {
+        moveLeft()
     }
-    ship.style.transform = `rotate(90deg) translateX(${positionX}px) translateY(${positionY}px)`;
-    console.log("Left: " + positionY + " Top: "+ positionX);
+    if (right) {
+        moveRight()
+    }
+    if (shoot) {
+        createBullets();
+    }
+    ship.style.transform = `translateX(${positionX}px) translateY(${positionY}px)`;
+    console.log("Left: " + positionX + " Top: "+ positionY);
+    console.log(bullets)
 }
 
-function shoot() {
+function createBullets() {
     let bullet = document.createElement("div");
     bullet.className = "bullet";
-    ship.appendChild(bullet);
-
+    let bulletPositionX = positionX + ship.offsetWidth;
+    let bulletPositionY = positionY + ship.offsetHeight/2;
+    bullet.style.transform = `translateX(${bulletPositionX}px) translateY(${bulletPositionY}px)`
+    game.appendChild(bullet);
+    bullets.push(bullet);
 
 }
 
+function moveBullets(bullet) {
+    let matrix = getTranslate(bullet);
+    let bulletPositionX = matrix.m41 + bulletSpeed;
+    let bulletPositionY = matrix.m42;
+    if (bulletPositionX - bullet.style.width > game.offsetWidth/2) {
+        let index = bullets.indexOf(bullet);
+        if (index > -1) {
+            bullets.splice(index, 1);
+            game.removeChild(bullet);
+        }
+    } else {
+        bullet.style.transform = `translateX(${bulletPositionX}px) translateY(${bulletPositionY}px)`
+    }
+
+}
+
+function getTranslate(object) {
+    let style = window.getComputedStyle(object);
+    return new WebKitCSSMatrix(style.webkitTransform);
+}
+
+
 function moveLeft() {
-    positionY += speed;
-    console.log("move right" + positionY);
+    if (positionX > (-game.offsetWidth/2)) {
+        positionX -= speed;
+    }
 }
 
 function moveRight(){
-   positionY -= speed;
-   console.log("move right" + positionY);
+    if (positionX + ship.offsetWidth < (game.offsetWidth/2)) {
+        positionX += speed;
+    }
 }
 
 function moveUp() {
-    positionX -= speed;
-    console.log("move right" + positionX);
+    if (positionY > (-game.offsetHeight/2)) {
+        positionY -= speed;
+    }
 }
 
 function moveDown() {
-    positionX += speed;
-    console.log("move right" + positionX);
+    if (positionY + ship.offsetHeight < (game.offsetHeight/2)) {
+        positionY += speed;
+    }
 }
 
