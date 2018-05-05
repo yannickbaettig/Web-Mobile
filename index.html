@@ -10,8 +10,10 @@
         <link rel="stylesheet" href="css/normalize.css">
         <link rel="stylesheet" href="css/main.css">
     </head>
-    <body onload="startGame()">
+    <body>
         <div id="game">
+            <div id="gameOver">Game Over</div>
+            <button id="start" onclick="startGame()">Start Game</button>
             <div id="sky"></div>
             <img id="ship" src="img/patch-back_triangle.png">
             <div id="ground"></div>
