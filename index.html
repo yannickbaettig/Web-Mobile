@@ -11,7 +11,15 @@
         <link rel="stylesheet" href="css/main.css">
     </head>
     <body>
+    <audio id="soundBackground"><source src="https://exorciser.ch/_media/di/dewebmo/motl.mp3" type="audio/mpeg"></audio>
         <div id="game">
+            <div id="score"></div>
+            <ol id="highscore"></ol>
+            <div id="saveScore">
+                <label for="name" id="labelName">Name:</label>
+                <input type="text" id="name" maxlength=10>
+                <input type="button" id="save" onclick="updateHighscore()" value="Save">
+            </div>
             <div id="gameOver">Game Over</div>
             <button id="start" onclick="startGame()">Start Game</button>
             <div id="sky"></div>

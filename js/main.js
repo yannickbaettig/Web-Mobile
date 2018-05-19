@@ -4,6 +4,10 @@ const sky = document.getElementById("sky");
 const ground = document.getElementById("ground");
 const startButton = document.getElementById("start");
 const gameOverText = document.getElementById("gameOver");
+const score = document.getElementById("score");
+const saveScore = document.getElementById("saveScore");
+const name = document.getElementById("name");
+const highscore = document.getElementById("highscore");
 let timer;
 let updateBeat = 10;
 ship.mydata = {};
@@ -15,7 +19,7 @@ let groundPositionX = 0;
 const skySpeed = 1;
 const groundSpeed = 2;
 const speed = 6;
-const bulletSpeed = 6;
+const bulletSpeed = 8;
 let right;
 let left;
 let up;
@@ -27,16 +31,26 @@ let enemies = [];
 let enemyCounter = 0;
 let lives  = [];
 let isGameOver = true;
+const timestamp = () => new Date().getTime();
+let lasthit = 0;
+let countScore;
+let counti;
+let enemySpawnTime;
 
 
 function startGame(){
     console.log("start Game");
-    ship.style.display = "block";
     ship.mydata.positionX = 0;
     ship.mydata.positionY = 0;
     startButton.style.display = "none";
     gameOverText.style.display = "none";
-
+    saveScore.style.display = "none";
+    saveScore.value="";
+    highscore.style.display = "none";
+    highscore.innerHTML = "";
+    countScore = 0;
+    enemySpawnTime = 400;
+    counti = 0;
     if (bullets.length !== 0){
         bullets.forEach(bullet => {
             game.removeChild(bullet);
@@ -52,17 +66,38 @@ function startGame(){
 
     createLives();
     timer = setInterval(draw,updateBeat);
-
     isGameOver = false;
 }
 
+function updateHighscore() {
+    let requestURL = 'http://localhost:8080/highscore?name='+name.value+'&score='+countScore;
+    fetch(requestURL)
+        .then((response) =>{
+            return response.json();
+        })
+        .then((players) =>{
+            players.forEach((player, index) => {
+                let li = document.createElement("li");
+                li.value = index + 1;
+                li.innerHTML = player.name + " " + player.score;
+                highscore.appendChild(li);
+            });
+            console.log(players);
+        }).catch((reject) =>{
+            console.log(reject)
+    });
+    highscore.style.display = "block";
+    saveScore.style.display = "none";
+}
 
 function gameOver() {
-    ship.style.display = "none";
     gameOverText.style.display = "block";
     startButton.style.display = "block";
+    saveScore.style.display = "block";
+    ship.classList.remove("blink");
     isGameOver = true;
     clearInterval(timer);
+
 }
 
 document.onkeydown = function(e) {
@@ -89,6 +124,10 @@ function draw() {
     if (!isGameOver) {
         collisionBulletsEnemies();
         collisionPlayerEnemies();
+
+        if(lasthit+1000 < timestamp()){
+            ship.classList.remove("blink")
+        }
         if (down) {
             moveDown()
         }
@@ -110,14 +149,32 @@ function draw() {
         bullets.forEach(moveBullets);
         enemies.forEach(moveEnemies);
 
-        if (enemyCounter % 50 === 0) {
+        if (enemyCounter % enemySpawnTime === 0) {
             createEnemy();
         }
         enemyCounter++;
 
+
+        if (counti % 10 === 0) {
+            countScore += 1;
+            enemySpawnTime -= 1;
+            enemySpawnTime = clump(enemySpawnTime,50,500)
+        }
+        score.innerHTML = countScore;
+
         ship.style.transform = `translateX(${ship.mydata.positionX}px) translateY(${ship.mydata.positionY}px)`;
-        moveBackground()
+        moveBackground();
+        counti += 1;
     }
+}
+
+function clump(value, lower, upper) {
+    if (value < lower){
+        value = lower;
+    } else if (value > upper) {
+        value = upper;
+    }
+    return value;
 }
 
 function collisionBulletsEnemies() {
@@ -136,6 +193,7 @@ function collisionBulletsEnemies() {
                     if (index > -1) {
                         enemies.splice(index, 1);
                         game.removeChild(enemy);
+                        countScore += 10;
                     }
                 }
             }
@@ -151,7 +209,7 @@ function collisionPlayerEnemies() {
             let live = lives.pop();
             game.removeChild(live);
             ship.className = "blink";
-            ship.
+            lasthit = timestamp();
             let index = enemies.indexOf(enemy);
             if (index > -1) {
                 enemies.splice(index, 1);
@@ -163,6 +221,7 @@ function collisionPlayerEnemies() {
         }
     })
 }
+
 
 function collision(obj1, obj2) {
     return (obj1.mydata.positionX < obj2.mydata.positionX + obj2.offsetWidth &&
@@ -196,6 +255,10 @@ function createBullet() {
     bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`;
     game.appendChild(bullet);
     bullets.push(bullet);
+    let soundShoot = document.createElement("audio");
+    soundShoot.src = "sound/shoot.wav";
+    soundShoot.type = "audio/wav";
+    soundShoot.play();
 
 }
 
@@ -220,7 +283,7 @@ function createEnemy() {
     enemy.mydata = {};
     enemy.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + enemy.offsetWidth);
     enemy.mydata.positionY = Math.floor((Math.random() * -game.offsetHeight)) + game.offsetHeight/2;
-    enemy.mydata.lives = 2;
+    enemy.mydata.lives = 5;
     enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`;
     game.appendChild(enemy);
     enemies.push(enemy);
@@ -241,10 +304,10 @@ function moveEnemies(enemy) {
 }
 
 function moveBackground() {
-    if (skyPositionX > 19000){
+    if (sky.offsetWidth - skyPositionX <= game.offsetWidth){
         skyPositionX = 0;
     }
-    if (groundPositionX > 19000){
+    if (ground.offsetWidth - groundPositionX  <= game.offsetWidth){
         groundPositionX = 0;
     }
     skyPositionX += skySpeed;
