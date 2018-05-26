@@ -24,6 +24,24 @@
     left: 50%;
 }
 
+.boss {
+    position: absolute;
+    width: 25vh;
+    height: 20vh;
+    top: 50%;
+    left: 50%;
+}
+
+.bossBullet {
+    position: absolute;
+    width: 2vh;
+    height: 1vh;
+    background-color: black;
+    visibility: visible;
+    top: 50%;
+    left: 50%;
+}
+
 #game {
     position: absolute;
     width: 100%;

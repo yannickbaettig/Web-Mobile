@@ -36,7 +36,9 @@ let lasthit = 0;
 let countScore;
 let counti;
 let enemySpawnTime;
-
+let boss;
+let bossSpeed = speed;
+let bossBullets = [];
 
 function startGame(){
     console.log("start Game");
@@ -62,6 +64,10 @@ function startGame(){
             game.removeChild(enemy);
         });
         enemies = [];
+    }
+    if (boss != null) {
+        game.removeChild(boss);
+        boss = null;
     }
 
     createLives();
@@ -123,10 +129,13 @@ document.onkeyup = function(e) {
 function draw() {
     if (!isGameOver) {
         collisionBulletsEnemies();
-        collisionPlayerEnemies();
 
         if(lasthit+1000 < timestamp()){
-            ship.classList.remove("blink")
+            ship.classList.remove("blink");
+            if (boss != null) {
+                collisionPlayerBoss();
+            }
+            collisionPlayerEnemies();
         }
         if (down) {
             moveDown()
@@ -141,18 +150,29 @@ function draw() {
             moveRight()
         }
         if (shoot) {
-            if (bulletCounter % 10 === 0) {
+            if (bulletCounter % 7 === 0) {
                 createBullet();
             }
             bulletCounter++;
         }
         bullets.forEach(moveBullets);
         enemies.forEach(moveEnemies);
-
+        bossBullets.forEach(moveBossBullets);
+        if (boss != null) {
+            moveBoss();
+            collisionBulletsBoss();
+            if (counti % 50 === 0) {
+                createBossBullet();
+            }
+        }
         if (enemyCounter % enemySpawnTime === 0) {
             createEnemy();
         }
         enemyCounter++;
+
+        if (counti === 500) {
+            createBoss();
+        }
 
 
         if (counti % 10 === 0) {
@@ -201,6 +221,35 @@ function collisionBulletsEnemies() {
     });
 }
 
+function collisionBulletsBoss() {
+    bullets.forEach((bullet) => {
+        if (collision(bullet, boss)) {
+            boss.mydata.lives -= 1;
+            let index = bullets.indexOf(bullet);
+            if (index > -1) {
+                bullets.splice(index, 1);
+                game.removeChild(bullet);
+            }
+            if (boss.mydata.lives === 0) {
+                    game.removeChild(boss);
+                    boss = null;
+                    countScore += 100;
+                }
+            }
+        })
+}
+
+function collisionPlayerBoss(){
+    if (collision(ship, boss)){
+        let live = lives.pop();
+        game.removeChild(live);
+        ship.className = "blink";
+        lasthit = timestamp();
+        if (lives.length === 0) {
+            gameOver();
+        }
+    }
+}
 
 function collisionPlayerEnemies() {
     enemies.forEach((enemy) => {
@@ -250,7 +299,12 @@ function createBullet() {
     let bullet = document.createElement("div");
     bullet.mydata = {};
     bullet.mydata.positionX = ship.mydata.positionX + ship.offsetWidth;
-    bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/2;
+    if (bulletCounter % 2 === 0) {
+        bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/8;
+    } else {
+        bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/2 + ship.offsetHeight/8;
+    }
+
     bullet.className = "bullet";
     bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`;
     game.appendChild(bullet);
@@ -262,8 +316,37 @@ function createBullet() {
 
 }
 
+function createBossBullet() {
+    let bullet = document.createElement("div");
+    bullet.mydata = {};
+    bullet.mydata.positionX = boss.mydata.positionX;
+    bullet.mydata.positionY = boss.mydata.positionY + boss.offsetHeight/2;
+
+    bullet.className = "bossBullet";
+    bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`;
+    game.appendChild(bullet);
+    bossBullets.push(bullet);
+    //let soundShoot = document.createElement("audio");
+    //soundShoot.src = "sound/shoot.wav";
+    //soundShoot.type = "audio/wav";
+    //soundShoot.play();
+}
+
+function moveBossBullets(bullet) {
+    if (bullet.mydata.positionX + bullet.offsetWidth < game.offsetWidth/2) {
+        let index = bossBullets.indexOf(bullet);
+        if (index > -1) {
+            bossBullets.splice(index, 1);
+            game.removeChild(bullet);
+        }
+    } else {
+        bullet.mydata.positionX -= bulletSpeed;
+        bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`
+    }
+}
+
 function moveBullets(bullet) {
-    if (bullet.mydata.positionX - bullet.style.width > game.offsetWidth/2) {
+    if (bullet.mydata.positionX - bullet.offsetWidth < -game.offsetWidth/2) {
         let index = bullets.indexOf(bullet);
         if (index > -1) {
             bullets.splice(index, 1);
@@ -273,7 +356,6 @@ function moveBullets(bullet) {
         bullet.mydata.positionX += bulletSpeed;
         bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`
     }
-
 }
 
 function createEnemy() {
@@ -283,15 +365,42 @@ function createEnemy() {
     enemy.mydata = {};
     enemy.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + enemy.offsetWidth);
     enemy.mydata.positionY = Math.floor((Math.random() * -game.offsetHeight)) + game.offsetHeight/2;
-    enemy.mydata.lives = 5;
+    enemy.mydata.lives = 3;
     enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`;
     game.appendChild(enemy);
     enemies.push(enemy);
 
 }
 
+function createBoss(){
+    let bossi = document.createElement("img");
+    bossi.src = "img/boss.png";
+    bossi.className = "boss";
+    bossi.mydata = {};
+    bossi.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + bossi.offsetWidth);
+    bossi.mydata.positionY = 0;
+    bossi.mydata.lives = 100;
+    bossi.style.transform = `translateX(${bossi.mydata.positionX}px) translateY(${bossi.mydata.positionY}px)`;
+    game.appendChild(bossi);
+    boss = bossi;
+}
+
+function moveBoss() {
+    if (boss.mydata.positionX + boss.offsetWidth < game.offsetWidth/2 ) {
+        if (boss.mydata.positionY <= (-game.offsetHeight/2) || boss.mydata.positionY + boss.offsetHeight >=(game.offsetHeight/2)) {
+            bossSpeed = bossSpeed * -1;
+        }
+        boss.mydata.positionY += bossSpeed;
+
+    } else {
+        boss.mydata.positionX -= speed;
+    }
+    boss.style.transform = `translateX(${boss.mydata.positionX}px) translateY(${boss.mydata.positionY}px)`
+}
+
+
 function moveEnemies(enemy) {
-    if (enemy.mydata.positionX - enemy.style.width < -game.offsetWidth/2) {
+    if (enemy.mydata.positionX + enemy.offsetWidth < -game.offsetWidth/2) {
         let index = enemies.indexOf(enemy);
         if (index > -1) {
             enemies.splice(index, 1);
@@ -299,6 +408,7 @@ function moveEnemies(enemy) {
         }
     } else {
         enemy.mydata.positionX -= speed;
+        enemy.mydata.positionY -= 4 * Math.sin(enemy.mydata.positionX/100);
         enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`
     }
 }
