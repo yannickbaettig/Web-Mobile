@@ -9,7 +9,7 @@
 .bullet {
     position: absolute;
     width: 2vh;
-    height: 1vh;
+    height: 0.75vh;
     background-color: red;
     visibility: visible;
     top: 50%;
@@ -32,14 +32,41 @@
     left: 50%;
 }
 
-.bossBullet {
+.enemyBullet {
     position: absolute;
     width: 2vh;
+    height: 0.75vh;
+    background-color: black;
+    visibility: visible;
+    top: 50%;
+    left: 50%;
+}
+
+.enemyRocket {
+    position: absolute;
+    width: 4vh;
     height: 1vh;
     background-color: black;
     visibility: visible;
     top: 50%;
     left: 50%;
+}
+
+.enemyRocket:before {
+    content:'';
+    position: absolute;
+    width: 1vh;
+    height: 1vh;
+    background-color: yellow;
+    right:0;
+}
+
+.enemyRocket:after {
+    content:'';
+    position: absolute;
+    width: 0.5vh;
+    height: 1vh;
+    background-color: red;
 }
 
 #game {
@@ -65,8 +92,8 @@
     position: absolute;
     background-image: url("../img/trees.png");
     background-repeat: repeat-x;
-    height: 40%;
-    top: 60%;
+    height: 30%;
+    top: 70%;
     width: 20000px;
     z-index: -9;
 }
@@ -108,6 +135,32 @@
     width: 5vh;
     height: 5vh;
     z-index: -8;
+}
+
+.solidGround {
+    background-color: saddlebrown;
+    position: absolute;
+    width: 100%;
+    height: 2vh;
+    left:0;
+    bottom: 0;
+    z-index: 10;
+}
+
+.flak {
+    position: absolute;
+    width: 3vh;
+    height: 3vh;
+    top: 50%;
+    left: 50%;
+    background-color: black;
+}
+
+.flak-barrel {
+    position: relative;
+    width: 0.75vh;
+    height: 3vh;
+    background-color: black;
 }
 
 .blink {

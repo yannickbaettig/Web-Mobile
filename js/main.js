@@ -8,6 +8,7 @@ const score = document.getElementById("score");
 const saveScore = document.getElementById("saveScore");
 const name = document.getElementById("name");
 const highscore = document.getElementById("highscore");
+const backgroundSound = document.getElementById("backgroundSound");
 let timer;
 let updateBeat = 10;
 ship.mydata = {};
@@ -20,6 +21,7 @@ const skySpeed = 1;
 const groundSpeed = 2;
 const speed = 6;
 const bulletSpeed = 8;
+const rocketCorrection = 3;
 let right;
 let left;
 let up;
@@ -36,9 +38,14 @@ let lasthit = 0;
 let countScore;
 let counti;
 let enemySpawnTime;
-let boss;
 let bossSpeed = speed;
-let bossBullets = [];
+let bossSpawned;
+let enemyBullets = [];
+
+
+function startSound() {
+    backgroundSound.play();
+}
 
 function startGame(){
     console.log("start Game");
@@ -51,7 +58,7 @@ function startGame(){
     highscore.style.display = "none";
     highscore.innerHTML = "";
     countScore = 0;
-    enemySpawnTime = 400;
+    enemySpawnTime = 500;
     counti = 0;
     if (bullets.length !== 0){
         bullets.forEach(bullet => {
@@ -65,14 +72,19 @@ function startGame(){
         });
         enemies = [];
     }
-    if (boss != null) {
-        game.removeChild(boss);
-        boss = null;
+    if (enemyBullets.length !== 0){
+        enemyBullets.forEach(bullet => {
+            game.removeChild(bullet);
+        });
+        enemyBullets = [];
     }
+    bossSpawned = false;
 
     createLives();
     timer = setInterval(draw,updateBeat);
     isGameOver = false;
+    backgroundSound.pause();
+
 }
 
 function updateHighscore() {
@@ -103,6 +115,7 @@ function gameOver() {
     ship.classList.remove("blink");
     isGameOver = true;
     clearInterval(timer);
+    backgroundSound.play();
 
 }
 
@@ -132,10 +145,8 @@ function draw() {
 
         if(lasthit+1000 < timestamp()){
             ship.classList.remove("blink");
-            if (boss != null) {
-                collisionPlayerBoss();
-            }
             collisionPlayerEnemies();
+            collisionPlayerEnemyBullets();
         }
         if (down) {
             moveDown()
@@ -157,20 +168,17 @@ function draw() {
         }
         bullets.forEach(moveBullets);
         enemies.forEach(moveEnemies);
-        bossBullets.forEach(moveBossBullets);
-        if (boss != null) {
-            moveBoss();
-            collisionBulletsBoss();
-            if (counti % 50 === 0) {
-                createBossBullet();
-            }
+        if (counti % 100 === 0){
+            enemies.forEach(createEnemyBullet)
         }
+        enemyBullets.forEach(moveEnemyBullets);
+
         if (enemyCounter % enemySpawnTime === 0) {
             createEnemy();
         }
         enemyCounter++;
 
-        if (counti === 500) {
+        if (counti === 500 && !bossSpawned) {
             createBoss();
         }
 
@@ -178,7 +186,7 @@ function draw() {
         if (counti % 10 === 0) {
             countScore += 1;
             enemySpawnTime -= 1;
-            enemySpawnTime = clump(enemySpawnTime,50,500)
+            enemySpawnTime = clump(enemySpawnTime,75,500)
         }
         score.innerHTML = countScore;
 
@@ -202,68 +210,30 @@ function collisionBulletsEnemies() {
         bullets.forEach((bullet) => {
             if (collision(bullet, enemy)) {
                 enemy.mydata.lives -= 1;
-
                 let index = bullets.indexOf(bullet);
                 if (index > -1) {
                     bullets.splice(index, 1);
                     game.removeChild(bullet);
                 }
-                if (enemy.mydata.lives === 0) {
-                    let index = enemies.indexOf(enemy);
-                    if (index > -1) {
-                        enemies.splice(index, 1);
-                        game.removeChild(enemy);
-                        countScore += 10;
-                    }
-                }
+                checkEnemyLife(enemy)
             }
         });
     });
 }
 
-function collisionBulletsBoss() {
-    bullets.forEach((bullet) => {
-        if (collision(bullet, boss)) {
-            boss.mydata.lives -= 1;
-            let index = bullets.indexOf(bullet);
-            if (index > -1) {
-                bullets.splice(index, 1);
-                game.removeChild(bullet);
-            }
-            if (boss.mydata.lives === 0) {
-                    game.removeChild(boss);
-                    boss = null;
-                    countScore += 100;
-                }
-            }
-        })
-}
-
-function collisionPlayerBoss(){
-    if (collision(ship, boss)){
-        let live = lives.pop();
-        game.removeChild(live);
-        ship.className = "blink";
-        lasthit = timestamp();
-        if (lives.length === 0) {
-            gameOver();
-        }
-    }
-}
-
 function collisionPlayerEnemies() {
     enemies.forEach((enemy) => {
         if (collision(ship, enemy)) {
-            enemy.mydata.lives = 0;
+            if (isBoss(enemy)) {
+                enemy.mydata.lives -= 1;
+            } else {
+                enemy.mydata.lives = 0;
+            }
             let live = lives.pop();
             game.removeChild(live);
             ship.className = "blink";
             lasthit = timestamp();
-            let index = enemies.indexOf(enemy);
-            if (index > -1) {
-                enemies.splice(index, 1);
-                game.removeChild(enemy);
-            }
+            checkEnemyLife(enemy);
             if (lives.length === 0) {
                gameOver();
             }
@@ -271,6 +241,48 @@ function collisionPlayerEnemies() {
     })
 }
 
+function collisionPlayerEnemyBullets() {
+    enemyBullets.forEach((bullet) => {
+        if (collision(ship, bullet)) {
+            let live = lives.pop();
+            game.removeChild(live);
+            ship.className = "blink";
+            lasthit = timestamp();
+            let index = enemyBullets.indexOf(bullet);
+            if (index > -1) {
+                enemyBullets.splice(index, 1);
+                game.removeChild(bullet);
+            }
+            if (lives.length === 0) {
+                gameOver();
+            }
+        }
+    })
+}
+
+function checkEnemyLife(enemy) {
+    if (enemy.mydata.lives === 0){
+        let index = enemies.indexOf(enemy);
+        if (index > -1) {
+            enemies.splice(index, 1);
+            game.removeChild(enemy);
+        }
+        if (isBoss(enemy)) {
+            countScore += 100;
+        } else {
+            countScore += 10;
+        }
+    }
+}
+
+function isBoss(enemy) {
+    return enemy.classList.contains("boss");
+}
+
+function isRocket(bullet) {
+    return bullet.classList.contains("enemyRocket");
+
+}
 
 function collision(obj1, obj2) {
     return (obj1.mydata.positionX < obj2.mydata.positionX + obj2.offsetWidth &&
@@ -289,7 +301,6 @@ function createLives() {
         lives.push(live);
         left += 40;
     }
-
     lives.forEach(live => {
         game.appendChild(live);
     });
@@ -316,37 +327,49 @@ function createBullet() {
 
 }
 
-function createBossBullet() {
+function createEnemyBullet(enemy) {
     let bullet = document.createElement("div");
     bullet.mydata = {};
-    bullet.mydata.positionX = boss.mydata.positionX;
-    bullet.mydata.positionY = boss.mydata.positionY + boss.offsetHeight/2;
+    bullet.mydata.positionX = enemy.mydata.positionX;
+    bullet.mydata.positionY = enemy.mydata.positionY + enemy.offsetHeight/2;
 
-    bullet.className = "bossBullet";
+    if (isBoss(enemy)){
+        bullet.className = "enemyRocket";
+    } else {
+        bullet.className = "enemyBullet";
+    }
+
     bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`;
     game.appendChild(bullet);
-    bossBullets.push(bullet);
-    //let soundShoot = document.createElement("audio");
-    //soundShoot.src = "sound/shoot.wav";
-    //soundShoot.type = "audio/wav";
-    //soundShoot.play();
+    enemyBullets.push(bullet);
+    let soundShoot = document.createElement("audio");
+    soundShoot.src = "sound/shoot.wav";
+    soundShoot.type = "audio/wav";
+    soundShoot.play();
 }
 
-function moveBossBullets(bullet) {
-    if (bullet.mydata.positionX + bullet.offsetWidth < game.offsetWidth/2) {
-        let index = bossBullets.indexOf(bullet);
+function moveEnemyBullets(bullet) {
+    if (bullet.mydata.positionX + bullet.offsetWidth < -game.offsetWidth/2) {
+        let index = enemyBullets.indexOf(bullet);
         if (index > -1) {
-            bossBullets.splice(index, 1);
+            enemyBullets.splice(index, 1);
             game.removeChild(bullet);
         }
     } else {
+        if (isRocket(bullet)) {
+            if (bullet.mydata.positionY < ship.mydata.positionY) {
+                bullet.mydata.positionY += rocketCorrection;
+            } else if(bullet.mydata.positionY > ship.mydata.positionY) {
+                bullet.mydata.positionY -= rocketCorrection;
+            }
+        }
         bullet.mydata.positionX -= bulletSpeed;
         bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`
     }
 }
 
 function moveBullets(bullet) {
-    if (bullet.mydata.positionX - bullet.offsetWidth < -game.offsetWidth/2) {
+    if (bullet.mydata.positionX - bullet.offsetWidth > game.offsetWidth/2) {
         let index = bullets.indexOf(bullet);
         if (index > -1) {
             bullets.splice(index, 1);
@@ -372,20 +395,33 @@ function createEnemy() {
 
 }
 
-function createBoss(){
-    let bossi = document.createElement("img");
-    bossi.src = "img/boss.png";
-    bossi.className = "boss";
-    bossi.mydata = {};
-    bossi.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + bossi.offsetWidth);
-    bossi.mydata.positionY = 0;
-    bossi.mydata.lives = 100;
-    bossi.style.transform = `translateX(${bossi.mydata.positionX}px) translateY(${bossi.mydata.positionY}px)`;
-    game.appendChild(bossi);
-    boss = bossi;
+function createFlak() {
+    let enemy = document.createElement("div");
+    enemy.className = "flak";
+    enemy.mydata = {};
+    enemy.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + enemy.offsetWidth);
+    enemy.mydata.positionY = game.offsetHeight/2;
+    enemy.mydata.lives = 3;
+    enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`;
+    game.appendChild(enemy);
+    enemies.push(enemy);
+
 }
 
-function moveBoss() {
+function createBoss(){
+    let boss = document.createElement("img");
+    boss.src = "img/boss.png";
+    boss.className = "boss";
+    boss.mydata = {};
+    boss.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + boss.offsetWidth);
+    boss.mydata.positionY = 0;
+    boss.mydata.lives = 100;
+    boss.style.transform = `translateX(${boss.mydata.positionX}px) translateY(${boss.mydata.positionY}px)`;
+    game.appendChild(boss);
+    enemies.push(boss);
+}
+
+function moveBoss(boss) {
     if (boss.mydata.positionX + boss.offsetWidth < game.offsetWidth/2 ) {
         if (boss.mydata.positionY <= (-game.offsetHeight/2) || boss.mydata.positionY + boss.offsetHeight >=(game.offsetHeight/2)) {
             bossSpeed = bossSpeed * -1;
@@ -400,16 +436,20 @@ function moveBoss() {
 
 
 function moveEnemies(enemy) {
-    if (enemy.mydata.positionX + enemy.offsetWidth < -game.offsetWidth/2) {
-        let index = enemies.indexOf(enemy);
-        if (index > -1) {
-            enemies.splice(index, 1);
-            game.removeChild(enemy);
-        }
+    if (isBoss(enemy)){
+        moveBoss(enemy)
     } else {
-        enemy.mydata.positionX -= speed;
-        enemy.mydata.positionY -= 4 * Math.sin(enemy.mydata.positionX/100);
-        enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`
+        if (enemy.mydata.positionX + enemy.offsetWidth < -game.offsetWidth/2) {
+            let index = enemies.indexOf(enemy);
+            if (index > -1) {
+                enemies.splice(index, 1);
+                game.removeChild(enemy);
+            }
+        } else {
+            enemy.mydata.positionX -= speed;
+            enemy.mydata.positionY -= 4 * Math.sin(enemy.mydata.positionX/100);
+            enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`
+        }
     }
 }
 
