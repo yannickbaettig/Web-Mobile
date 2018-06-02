@@ -20,7 +20,7 @@ let groundPositionX = 0;
 const skySpeed = 1;
 const groundSpeed = 2;
 const speed = 6;
-const bulletSpeed = 8;
+const bulletSpeed = 9;
 const rocketCorrection = 3;
 let right;
 let left;
@@ -41,6 +41,8 @@ let enemySpawnTime;
 let bossSpeed = speed;
 let bossSpawned;
 let enemyBullets = [];
+let isPowerup;
+let powerups = [];
 
 
 function startSound() {
@@ -78,8 +80,14 @@ function startGame(){
         });
         enemyBullets = [];
     }
+    if (powerups.length !== 0){
+        powerups.forEach(powerup => {
+            game.removeChild(powerup);
+        });
+        powerups = [];
+    }
     bossSpawned = false;
-
+    isPowerup = false;
     createLives();
     timer = setInterval(draw,updateBeat);
     isGameOver = false;
@@ -142,6 +150,7 @@ document.onkeyup = function(e) {
 function draw() {
     if (!isGameOver) {
         collisionBulletsEnemies();
+        collisionPlayerPowerup();
 
         if(lasthit+1000 < timestamp()){
             ship.classList.remove("blink");
@@ -161,14 +170,22 @@ function draw() {
             moveRight()
         }
         if (shoot) {
-            if (bulletCounter % 7 === 0) {
-                createBullet();
+            if (isPowerup){
+                if (bulletCounter % 7 === 0) {
+                    createBullet();
+                }
+            } else {
+                if (bulletCounter % 14 === 0) {
+                    createBullet();
+                }
             }
+
             bulletCounter++;
         }
         bullets.forEach(moveBullets);
         enemies.forEach(moveEnemies);
-        if (counti % 100 === 0){
+        powerups.forEach(movePowerup);
+        if (counti % 120 === 0){
             enemies.forEach(createEnemyBullet)
         }
         enemyBullets.forEach(moveEnemyBullets);
@@ -178,10 +195,13 @@ function draw() {
         }
         enemyCounter++;
 
-        if (counti === 500 && !bossSpawned) {
+        if (counti === 10000 && !bossSpawned) {
             createBoss();
         }
 
+        if (counti % 3000 === 0) {
+            createPowerup();
+        }
 
         if (counti % 10 === 0) {
             countScore += 1;
@@ -229,14 +249,25 @@ function collisionPlayerEnemies() {
             } else {
                 enemy.mydata.lives = 0;
             }
-            let live = lives.pop();
-            game.removeChild(live);
-            ship.className = "blink";
-            lasthit = timestamp();
+            checkLife();
             checkEnemyLife(enemy);
-            if (lives.length === 0) {
-               gameOver();
+        }
+    })
+}
+
+function collisionPlayerPowerup() {
+    powerups.forEach((powerup) => {
+        if (collision(ship, powerup)) {
+            let index = powerups.indexOf(powerup);
+            if (index > -1) {
+                powerups.splice(index, 1);
+                game.removeChild(powerup);
             }
+            isPowerup = true;
+            let soundShoot = document.createElement("audio");
+            soundShoot.src = "sound/powerup.wav";
+            soundShoot.type = "audio/wav";
+            soundShoot.play();
         }
     })
 }
@@ -244,20 +275,25 @@ function collisionPlayerEnemies() {
 function collisionPlayerEnemyBullets() {
     enemyBullets.forEach((bullet) => {
         if (collision(ship, bullet)) {
-            let live = lives.pop();
-            game.removeChild(live);
-            ship.className = "blink";
-            lasthit = timestamp();
             let index = enemyBullets.indexOf(bullet);
             if (index > -1) {
                 enemyBullets.splice(index, 1);
                 game.removeChild(bullet);
             }
-            if (lives.length === 0) {
-                gameOver();
-            }
+            checkLife();
         }
     })
+}
+
+function checkLife() {
+    let live = lives.pop();
+    game.removeChild(live);
+    ship.className = "blink";
+    lasthit = timestamp();
+    isPowerup = false;
+    if (lives.length === 0) {
+        gameOver();
+    }
 }
 
 function checkEnemyLife(enemy) {
@@ -272,6 +308,10 @@ function checkEnemyLife(enemy) {
         } else {
             countScore += 10;
         }
+        let explosion = document.createElement("audio");
+        explosion.src = "sound/explosion.wav";
+        explosion.type = "audio/wav";
+        explosion.play();
     }
 }
 
@@ -310,18 +350,24 @@ function createBullet() {
     let bullet = document.createElement("div");
     bullet.mydata = {};
     bullet.mydata.positionX = ship.mydata.positionX + ship.offsetWidth;
-    if (bulletCounter % 2 === 0) {
-        bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/8;
+    if (isPowerup){
+        if (bulletCounter % 2 === 0) {
+            bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/8;
+        } else {
+            bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/2 + ship.offsetHeight/8;
+        }
     } else {
-        bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/2 + ship.offsetHeight/8;
+        bullet.mydata.positionY = ship.mydata.positionY + ship.offsetHeight/2;
     }
+
+
 
     bullet.className = "bullet";
     bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`;
     game.appendChild(bullet);
     bullets.push(bullet);
     let soundShoot = document.createElement("audio");
-    soundShoot.src = "sound/shoot.wav";
+    soundShoot.src = "sound/shoot4.wav";
     soundShoot.type = "audio/wav";
     soundShoot.play();
 
@@ -332,53 +378,22 @@ function createEnemyBullet(enemy) {
     bullet.mydata = {};
     bullet.mydata.positionX = enemy.mydata.positionX;
     bullet.mydata.positionY = enemy.mydata.positionY + enemy.offsetHeight/2;
-
+    let soundShoot = document.createElement("audio");
     if (isBoss(enemy)){
         bullet.className = "enemyRocket";
+        soundShoot.src = "sound/shoot.wav";
     } else {
         bullet.className = "enemyBullet";
+        soundShoot.src = "sound/shoot4.wav";
     }
 
     bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`;
     game.appendChild(bullet);
     enemyBullets.push(bullet);
-    let soundShoot = document.createElement("audio");
-    soundShoot.src = "sound/shoot.wav";
+
+
     soundShoot.type = "audio/wav";
     soundShoot.play();
-}
-
-function moveEnemyBullets(bullet) {
-    if (bullet.mydata.positionX + bullet.offsetWidth < -game.offsetWidth/2) {
-        let index = enemyBullets.indexOf(bullet);
-        if (index > -1) {
-            enemyBullets.splice(index, 1);
-            game.removeChild(bullet);
-        }
-    } else {
-        if (isRocket(bullet)) {
-            if (bullet.mydata.positionY < ship.mydata.positionY) {
-                bullet.mydata.positionY += rocketCorrection;
-            } else if(bullet.mydata.positionY > ship.mydata.positionY) {
-                bullet.mydata.positionY -= rocketCorrection;
-            }
-        }
-        bullet.mydata.positionX -= bulletSpeed;
-        bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`
-    }
-}
-
-function moveBullets(bullet) {
-    if (bullet.mydata.positionX - bullet.offsetWidth > game.offsetWidth/2) {
-        let index = bullets.indexOf(bullet);
-        if (index > -1) {
-            bullets.splice(index, 1);
-            game.removeChild(bullet);
-        }
-    } else {
-        bullet.mydata.positionX += bulletSpeed;
-        bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`
-    }
 }
 
 function createEnemy() {
@@ -387,7 +402,7 @@ function createEnemy() {
     enemy.className = "enemy";
     enemy.mydata = {};
     enemy.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + enemy.offsetWidth);
-    enemy.mydata.positionY = Math.floor((Math.random() * -game.offsetHeight)) + game.offsetHeight/2;
+    enemy.mydata.positionY = Math.floor((Math.random() * (game.offsetWidth + 1))) - game.offsetHeight/2;
     enemy.mydata.lives = 3;
     enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`;
     game.appendChild(enemy);
@@ -395,18 +410,18 @@ function createEnemy() {
 
 }
 
-function createFlak() {
-    let enemy = document.createElement("div");
-    enemy.className = "flak";
-    enemy.mydata = {};
-    enemy.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + enemy.offsetWidth);
-    enemy.mydata.positionY = game.offsetHeight/2;
-    enemy.mydata.lives = 3;
-    enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`;
-    game.appendChild(enemy);
-    enemies.push(enemy);
+function createPowerup() {
+    let powerup = document.createElement("div");
+    powerup.className = "powerup";
+    powerup.mydata = {};
+    powerup.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + powerup.offsetWidth);
+    powerup.mydata.positionY = Math.floor((Math.random() * (game.offsetWidth + 1))) - game.offsetHeight/2;
+    powerup.style.transform = `translateX(${powerup.mydata.positionX}px) translateY(${powerup.mydata.positionY}px)`;
+    game.appendChild(powerup);
+    powerups.push(powerup);
 
 }
+
 
 function createBoss(){
     let boss = document.createElement("img");
@@ -415,7 +430,7 @@ function createBoss(){
     boss.mydata = {};
     boss.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + boss.offsetWidth);
     boss.mydata.positionY = 0;
-    boss.mydata.lives = 100;
+    boss.mydata.lives = 200;
     boss.style.transform = `translateX(${boss.mydata.positionX}px) translateY(${boss.mydata.positionY}px)`;
     game.appendChild(boss);
     enemies.push(boss);
@@ -453,6 +468,19 @@ function moveEnemies(enemy) {
     }
 }
 
+function movePowerup(powerup) {
+        if (powerup.mydata.positionX + powerup.offsetWidth < -game.offsetWidth/2) {
+            let index = powerups.indexOf(powerup);
+            if (index > -1) {
+                powerups.splice(index, 1);
+                game.removeChild(powerup);
+            }
+        } else {
+            powerup.mydata.positionX -= skySpeed;
+            powerup.style.transform = `translateX(${powerup.mydata.positionX}px) translateY(${powerup.mydata.positionY}px)`
+        }
+}
+
 function moveBackground() {
     if (sky.offsetWidth - skyPositionX <= game.offsetWidth){
         skyPositionX = 0;
@@ -464,6 +492,40 @@ function moveBackground() {
     groundPositionX += groundSpeed;
     sky.style.transform = `translateX(${-skyPositionX}px)`;
     ground.style.transform = `translateX(${-groundPositionX}px)`;
+}
+
+
+function moveEnemyBullets(bullet) {
+    if (bullet.mydata.positionX + bullet.offsetWidth < -game.offsetWidth/2) {
+        let index = enemyBullets.indexOf(bullet);
+        if (index > -1) {
+            enemyBullets.splice(index, 1);
+            game.removeChild(bullet);
+        }
+    } else {
+        if (isRocket(bullet)) {
+            if (bullet.mydata.positionY < ship.mydata.positionY) {
+                bullet.mydata.positionY += rocketCorrection;
+            } else if(bullet.mydata.positionY > ship.mydata.positionY) {
+                bullet.mydata.positionY -= rocketCorrection;
+            }
+        }
+        bullet.mydata.positionX -= bulletSpeed;
+        bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`
+    }
+}
+
+function moveBullets(bullet) {
+    if (bullet.mydata.positionX - bullet.offsetWidth > game.offsetWidth/2) {
+        let index = bullets.indexOf(bullet);
+        if (index > -1) {
+            bullets.splice(index, 1);
+            game.removeChild(bullet);
+        }
+    } else {
+        bullet.mydata.positionX += bulletSpeed;
+        bullet.style.transform = `translateX(${bullet.mydata.positionX}px) translateY(${bullet.mydata.positionY}px)`
+    }
 }
 
 function moveLeft() {

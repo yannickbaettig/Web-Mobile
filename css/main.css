@@ -26,8 +26,8 @@
 
 .boss {
     position: absolute;
-    width: 25vh;
-    height: 20vh;
+    width: 24vh;
+    height: 10vh;
     top: 50%;
     left: 50%;
 }
@@ -84,7 +84,7 @@
     background-repeat: repeat-x;
     animation: infinite;
     height: 100%;
-    width: 20000px;
+    width: 40000px;
     z-index: -10;
 }
 
@@ -94,7 +94,7 @@
     background-repeat: repeat-x;
     height: 30%;
     top: 70%;
-    width: 20000px;
+    width: 40000px;
     z-index: -9;
 }
 
@@ -161,6 +161,7 @@
     width: 0.75vh;
     height: 3vh;
     background-color: black;
+
 }
 
 .blink {
@@ -198,4 +199,13 @@
     font-family: Futura, serif;
     font-weight: bold;
     font-size: 20px;
+}
+
+.powerup {
+    position: absolute;
+    width: 3vh;
+    height: 3vh;
+    top: 50%;
+    left: 50%;
+    background-color: gold;
 }
