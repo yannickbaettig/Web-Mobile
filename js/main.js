@@ -45,10 +45,6 @@ let isPowerup;
 let powerups = [];
 
 
-function startSound() {
-    backgroundSound.play();
-}
-
 function startGame(){
     console.log("start Game");
     ship.mydata.positionX = 0;
