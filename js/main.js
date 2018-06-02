@@ -398,7 +398,7 @@ function createEnemy() {
     enemy.className = "enemy";
     enemy.mydata = {};
     enemy.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + enemy.offsetWidth);
-    enemy.mydata.positionY = Math.floor((Math.random() * (game.offsetWidth + 1))) - game.offsetHeight/2;
+    enemy.mydata.positionY = Math.floor((Math.random() * (game.offsetHeight + 1))) - game.offsetHeight/2;
     enemy.mydata.lives = 3;
     enemy.style.transform = `translateX(${enemy.mydata.positionX}px) translateY(${enemy.mydata.positionY}px)`;
     game.appendChild(enemy);
@@ -411,7 +411,7 @@ function createPowerup() {
     powerup.className = "powerup";
     powerup.mydata = {};
     powerup.mydata.positionX = game.offsetWidth/2 + (Math.floor(Math.random() * 400 ) + powerup.offsetWidth);
-    powerup.mydata.positionY = Math.floor((Math.random() * (game.offsetWidth + 1))) - game.offsetHeight/2;
+    powerup.mydata.positionY = Math.floor((Math.random() * (game.offsetHeight + 1))) - game.offsetHeight/2;
     powerup.style.transform = `translateX(${powerup.mydata.positionX}px) translateY(${powerup.mydata.positionY}px)`;
     game.appendChild(powerup);
     powerups.push(powerup);
